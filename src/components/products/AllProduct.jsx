@@ -1,11 +1,13 @@
 import {
+  Autocomplete,
   Box,
   Card,
   CircularProgress,
   Divider,
   Grid,
   Snackbar,
-  SnackbarContent, 
+  SnackbarContent,
+  TextField,
   Tooltip,
   Typography,
 } from "@mui/material";
@@ -18,12 +20,16 @@ import CloseIcon from "@mui/icons-material/Close";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
+
 function AllProduct() {
   const [cartList, setCartList] = useState([]);
   const [openAlert, setOpenAlert] = useState(false);
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const [categoryOption, setCategoryOption] = useState([]);
+  const [categoryFilter, setCategoryFilter] = useState({});
+  const [allProducts, setAllProducts] = useState([]);
 
   console.log(isLoading, "isLoading");
 
@@ -60,8 +66,25 @@ function AllProduct() {
         const products = await axios.get("https://fakestoreapi.com/products");
 
         if (products.status === 200) {
+
           setIsLoading(false);
           setProducts(products?.data);
+          setAllProducts(products?.data);
+
+          const filterCategories = products?.data?.map((product) => {
+            return {
+              label: product?.category,
+              value: product?.category,
+            };
+          });
+
+          const uniqueCategories = filterCategories.filter(
+            (item, index, self) =>
+              index === self.findIndex((t) => t.value === item.value)
+          );
+
+          setCategoryOption(uniqueCategories);
+
         } else {
           setIsLoading(true);
         }
@@ -72,17 +95,42 @@ function AllProduct() {
     fetchProducts();
   }, []);
 
+  useEffect(() => {
+
+    let filteredProducts = allProducts.filter((product) =>
+      product?.category === categoryFilter?.value);
+   
+    setProducts(filteredProducts)
+
+    console.log(filteredProducts, 'filteredProducts');
+
+
+  }, [categoryFilter]);
+
 
   return (
     <>
-  
+      <Box className={"container mt-5 "}>
+        <Autocomplete
+          size="small"
+          disablePortal
+          options={categoryOption}
+          onChange={(e, newValue) => {
+            setCategoryFilter(newValue);
+
+          }}
+          sx={{ width: 300 }}
+          renderInput={(params) => <TextField {...params} label="Categories" />}
+        />
+
+      </Box>
       <Snackbar
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
         open={openAlert}
         autoHideDuration={6000}
         onClose={handleClose}
       >
-        
+
         <SnackbarContent
           style={{
             backgroundColor: "#bb2124",
@@ -102,8 +150,10 @@ function AllProduct() {
       ) : <Grid container className="container mt-5 ">
         {products?.map((product) => (
           <Grid item xs={12} md={3} mb={2}>
-            <Card className=" shadow" key={product.id} sx={{ padding: "20px ", 
-              width: "250px", border: "1px solid #0AAD0A"  }}>
+            <Card className=" shadow" key={product.id} sx={{
+              padding: "20px ",
+              width: "250px", border: "1px solid #0AAD0A"
+            }}>
               <Box>
                 <Box className="text-center">
                   <img
@@ -117,20 +167,21 @@ function AllProduct() {
                       >= 22 ? `${product?.title?.slice(0, 18)}...`
                       : product?.title}
                   </Typography>
-                  
+
                 </Tooltip>
                 <Divider className="mt-2 " sx={{ borderColor: "#0AAD0A" }}
-                 variant="fullWidth" />
+                  variant="fullWidth" />
                 <Box className="d-flex justify-content-between mt-2">
                   <Tooltip title="product details">
-                    <Visibility sx={{color: "#0AAD0A"}} on onClick={()=>{
-                      navigate(`/product-details/${product?.id}`)}} />
+                    <Visibility sx={{ color: "#0AAD0A" }} on onClick={() => {
+                      navigate(`/product-details/${product?.id}`)
+                    }} />
                   </Tooltip >
                   <Tooltip title="Add To Favorite">
-                    <FavoriteIcon sx={{color: "#0AAD0A"}} />
+                    <FavoriteIcon sx={{ color: "#0AAD0A" }} />
                   </Tooltip>
                   <Tooltip title="Add To Cart">
-                    <AddShoppingCartIcon sx={{color: "#0AAD0A"}} onClick={() => cartHandler(product)} />
+                    <AddShoppingCartIcon sx={{ color: "#0AAD0A" }} onClick={() => cartHandler(product)} />
                   </Tooltip>
                 </Box>
               </Box>
